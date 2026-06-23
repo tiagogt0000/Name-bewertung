@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projekt erstellen</title>
+</head>
+<body>
+
+<h1>Neues Projekt</h1>
+
+<input id="titel" placeholder="Titel"><br><br>
+
+<input id="klasse" placeholder="Klasse"><br><br>
+
+<textarea id="gruppen" placeholder="Eine Gruppe pro Zeile"></textarea><br><br>
+
+<textarea id="kriterien" placeholder="Ein Kriterium pro Zeile"></textarea><br><br>
+
+<button onclick="erstellen()">Projekt erstellen</button>
+
+<div id="ergebnis"></div>
+
+<script>
+
+const API =
+"https://script.google.com/macros/s/AKfycbxeoaj9MlKorhn9-VqiUM3JgK1KwJMWcMv4J9ZPN7vhDAhOqF0_rQNB82e6zZ5aD30e/exec";
+
+async function erstellen() {
+
+  const daten = {
+    action: "createProject",
+    titel: document.getElementById("titel").value,
+    klasse: document.getElementById("klasse").value,
+    gruppen: document.getElementById("gruppen").value
+      .split("\n")
+      .filter(x => x.trim() !== ""),
+    kriterien: document.getElementById("kriterien").value
+      .split("\n")
+      .filter(x => x.trim() !== "")
+  };
+
+  const response = await fetch(API,{
+    method:"POST",
+    body:JSON.stringify(daten)
+  });
+
+  const result = await response.json();
+
+  document.getElementById("ergebnis").innerHTML =
+    "<h2>Code: " + result.code + "</h2>";
+}
+
+</script>
+
+</body>
+</html>

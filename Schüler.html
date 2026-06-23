@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bewertung</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    max-width:900px;
+    margin:auto;
+    padding:20px;
+}
+
+input,button{
+    padding:10px;
+    margin:5px;
+}
+
+.gruppe{
+    border:1px solid #ddd;
+    padding:15px;
+    margin-top:15px;
+    border-radius:10px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>Projektbewertung</h1>
+
+<div id="start">
+
+    <input id="code" placeholder="Projektcode">
+
+    <button onclick="laden()">
+        Projekt laden
+    </button>
+
+</div>
+
+<div id="projekt"></div>
+
+<script>
+
+const API =
+"https://script.google.com/macros/s/AKfycbxeoaj9MlKorhn9-VqiUM3JgK1KwJMWcMv4J9ZPN7vhDAhOqF0_rQNB82e6zZ5aD30e/exec";
+
+let aktuellesProjekt = null;
+
+async function laden(){
+
+    const response = await fetch(API,{
+        method:"POST",
+        body:JSON.stringify({
+            action:"getProject",
+            code:document.getElementById("code").value
+        })
+    });
+
+    const projekt = await response.json();
+
+    aktuellesProjekt = projekt;
+
+    anzeigen(projekt);
+}
+
+function anzeigen(projekt){
+
+    let html = `
+        <h2>${projekt.titel}</h2>
+        <p>Klasse: ${projekt.klasse}</p>
+
+        <input id="schueler"
+               placeholder="Dein Name">
+
+        <hr>
+    `;
+
+    projekt.gruppen.forEach(gruppe=>{
+
+        html += `<div class="gruppe">`;
+
+        html += `<h3>${gruppe}</h3>`;
+
+        projekt.kriterien.forEach(kriterium=>{
+
+            html += `
+                <label>
+                    ${kriterium}
+                </label>
+
+                <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    id="${gruppe}_${kriterium}"
+                >
+
+                <br><br>
+            `;
+        });
+
+        html += `</div>`;
+    });
+
+    html += `
+        <button onclick="absenden()">
+            Bewertung absenden
+        </button>
+    `;
+
+    document.getElementById("projekt").innerHTML = html;
+}
+
+async function absenden(){
+
+    const bewertung = {};
+
+    aktuellesProjekt.gruppen.forEach(gruppe=>{
+
+        bewertung[gruppe] = {};
+
+        aktuellesProjekt.kriterien.forEach(kriterium=>{
+
+            bewertung[gruppe][kriterium] =
+                document.getElementById(
+                    gruppe + "_" + kriterium
+                ).value;
+        });
+    });
+
+    await fetch(API,{
+        method:"POST",
+        body:JSON.stringify({
+            projektCode: aktuellesProjekt.code,
+            schueler:
+                document.getElementById("schueler").value,
+            bewertung: bewertung
+        })
+    });
+
+    alert("Bewertung gespeichert");
+}
+
+const params = new URLSearchParams(window.location.search);
+const codeAusUrl = params.get("code");
+
+if(codeAusUrl){
+    document.getElementById("code").value = codeAusUrl;
+    laden();
+}
+
+</script>
+
+</body>
+</html>
