@@ -1,57 +1,993 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projekt erstellen</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hoffstaedter Bewertungssite | Lehrer Dashboard</title>
+    
+    <!-- Google Fonts & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js für Live-Smartboard-Ergebnisse -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- QRCode.js für lokale QR-Code Generierung ohne externe Server -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at 0% 0%, #1a0b2e 0%, #0a0a16 50%), 
+                           radial-gradient(circle at 100% 100%, #0b1a3a 0%, #0a0a16 100%);
+            --glass-bg: rgba(25, 15, 45, 0.45);
+            --glass-border: rgba(255, 215, 0, 0.15);
+            --glass-focus: rgba(255, 215, 0, 0.3);
+            --gold-primary: #ffd700;
+            --gold-gradient: linear-gradient(135deg, #ffe066 0%, #ffd700 50%, #b39700 100%);
+            --text-light: #f5f5f7;
+            --text-muted: #a0a0b8;
+            --danger: #ff4d4d;
+            --danger-gradient: linear-gradient(135deg, #ff6b6b, #cc0000);
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.4); }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-bottom: 30px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-area h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(255, 215, 0, 0.3);
+            box-shadow: 0 12px 40px 0 rgba(255, 215, 0, 0.05);
+        }
+
+        .btn {
+            background: var(--gold-gradient);
+            color: #0a0a16;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+            font-size: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--glass-focus);
+        }
+
+        .btn-danger {
+            background: var(--danger-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 77, 77, 0.2);
+        }
+
+        .btn-danger:hover { box-shadow: 0 6px 20px rgba(255, 77, 77, 0.4); }
+        .btn-icon { padding: 10px; border-radius: 50%; }
+
+        .form-group { margin-bottom: 25px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 16px;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        .app-view { display: none; animation: fadeIn 0.4s ease-out forwards; }
+        .app-view.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .grid-dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+        @media(min-width: 768px) { .grid-dashboard { grid-template-columns: repeat(2, 1fr); } }
+
+        .project-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .project-badge {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid var(--glass-border);
+            color: var(--gold-primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .project-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--glass-border);
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; background: rgba(0, 0, 0, 0.1); }
+        th, td { padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        th {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 10, 22, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 215, 0, 0.1);
+            border-left-color: var(--gold-primary);
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        #loader p { color: var(--gold-primary); font-weight: 500; letter-spacing: 1.5px; font-size: 18px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #15102a;
+            border: 1px solid var(--gold-primary);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
+            max-width: 600px;
+            width: 100%;
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            position: relative;
+            animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-close { position: absolute; top: 20px; right: 20px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; }
+        .modal-close:hover { color: var(--gold-primary); }
+
+        #view-present {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-gradient);
+            z-index: 900;
+            padding: 40px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .present-grid { display: grid; grid-template-columns: 1fr; gap: 30px; margin-top: 40px; }
+        @media(min-width: 992px) { .present-grid { grid-template-columns: 1fr 1fr; } }
+
+        .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 15px; height: 220px; margin: 40px 0; }
+        .podium-place {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 20px;
+            text-align: center;
+            min-width: 110px;
+            transition: var(--transition);
+        }
+        .podium-place.place-1 { height: 100%; border-color: var(--gold-primary); background: rgba(255, 215, 0, 0.08); min-width: 140px; }
+        .podium-place.place-2 { height: 75%; }
+        .podium-place.place-3 { height: 55%; }
+        .podium-crown { color: var(--gold-primary); margin-bottom: 10px; }
+        .podium-name { font-weight: 600; font-size: 15px; }
+        .podium-score { color: var(--gold-primary); font-weight: 700; font-size: 16px; }
+
+        .qr-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 20px 0; gap: 15px; }
+        .qr-wrapper canvas, .qr-wrapper img { border: 8px solid white; border-radius: 8px; }
+
+        .criteria-badge-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        .crit-badge { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 4px 12px; border-radius: 20px; font-size: 13px; }
+
+        .form-help { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: block; line-height: 1.4; }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 20px 0;
+            color: rgba(160, 160, 184, 0.4);
+            font-size: 12px;
+            border-top: 1px solid rgba(255, 215, 0, 0.05);
+            letter-spacing: 0.5px;
+        }
+    </style>
 </head>
 <body>
 
-<h1>Neues Projekt</h1>
+    <!-- Fullscreen Loader Overlay -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <p id="loader-text">Lädt...</p>
+    </div>
 
-<input id="titel" placeholder="Titel"><br><br>
+    <div class="container" id="main-container">
+        <!-- Header -->
+        <header>
+            <div class="logo-area">
+                <i data-lucide="graduation-cap" style="color: var(--gold-primary); width: 32px; height: 32px;"></i>
+                <h1>Hoffstaedter <span style="font-weight:300; font-size:16px; color:var(--text-muted);">Bewertungssite</span></h1>
+            </div>
+            <div id="nav-actions">
+                <button class="btn" onclick="switchView('view-create-project')">
+                    <i data-lucide="plus-circle"></i> Neues Projekt
+                </button>
+            </div>
+        </header>
 
-<input id="klasse" placeholder="Klasse"><br><br>
+        <!-- VIEW: DASHBOARD -->
+        <section id="view-dashboard" class="app-view active">
+            <div class="view-header" style="margin-bottom: 25px;">
+                <h2>Projektübersicht</h2>
+                <p style="color: var(--text-muted)">Verwalten Sie Ihre aktiven Bewertungsprojekte</p>
+            </div>
+            <div class="grid-dashboard" id="projects-grid"></div>
+        </section>
 
-<textarea id="gruppen" placeholder="Eine Gruppe pro Zeile"></textarea><br><br>
+        <!-- VIEW: CREATE PROJECT -->
+        <section id="view-create-project" class="app-view">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                    <h3>Neues Projekt erstellen</h3>
+                    <button class="btn btn-secondary btn-icon" onclick="switchView('view-dashboard')"><i data-lucide="arrow-left"></i></button>
+                </div>
+                <form id="form-create-project" onsubmit="handleCreateProject(event)">
+                    <div class="form-group">
+                        <label for="p-title">Projekttitel</label>
+                        <input type="text" id="p-title" class="form-control" placeholder="z.B. Römer Projekt" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="p-class">Klasse</label>
+                        <input type="text" id="p-class" class="form-control" placeholder="z.B. 8b" required>
+                    </div>
+                    
+                    <!-- Dynamische Gruppen-Spalten -->
+                    <div class="form-group">
+                        <label>Zu bewertende Gruppen</label>
+                        <div id="groups-fields-container">
+                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                <input type="text" class="form-control project-group-input" placeholder="Gruppe 1 (z.B. Gruppe A)" required>
+                                <button type="button" class="btn btn-danger btn-icon" style="padding:12px; opacity:0; pointer-events:none;"><i data-lucide="trash-2"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px; margin-top: 5px;" onclick="addGroupField()">
+                            <i data-lucide="plus"></i> Neue Gruppe hinzufügen
+                        </button>
+                        <p class="form-help">Trage hier die Gruppen ein, die bewertet werden sollen. Die Schüler wählen diese Gruppen später in ihrem Menü aus.</p>
+                    </div>
+                    
+                    <!-- Dynamische Kriterien-Spalten -->
+                    <div class="form-group">
+                        <label>Bewertungskriterien</label>
+                        <div id="criteria-fields-container">
+                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                <input type="text" class="form-control project-criterion-input" placeholder="Kriterium 1 (z.B. Fachwissen)" required>
+                                <button type="button" class="btn btn-danger btn-icon" style="padding:12px; opacity:0; pointer-events:none;"><i data-lucide="trash-2"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px; margin-top: 5px;" onclick="addCriterionField()">
+                            <i data-lucide="plus"></i> Neues Kriterium hinzufügen
+                        </button>
+                    </div>
 
-<textarea id="kriterien" placeholder="Ein Kriterium pro Zeile"></textarea><br><br>
+                    <div style="display:flex; gap:15px; margin-top:35px;">
+                        <button type="submit" class="btn">Projekt anlegen</button>
+                        <button type="button" class="btn btn-secondary" onclick="switchView('view-dashboard')">Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        </section>
 
-<button onclick="erstellen()">Projekt erstellen</button>
+        <!-- VIEW: PROJECT DETAILS -->
+        <section id="view-project-details" class="app-view">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:15px;">
+                    <div>
+                        <span class="project-badge" id="det-class">Klasse</span>
+                        <h2 id="det-title" style="margin-top:10px; font-size:28px;">Projekttitel</h2>
+                        <p style="color:var(--text-muted); margin-top:5px;">Code: <strong id="det-code" style="color:var(--gold-primary);">XXXX</strong></p>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn" id="btn-present-trigger"><i data-lucide="tv"></i> Ergebnisse präsentieren</button>
+                        <button class="btn btn-secondary" id="btn-copy-det-link"><i data-lucide="copy"></i> Link</button>
+                        <button class="btn btn-secondary" id="btn-qr-det-trigger"><i data-lucide="qr-code"></i> QR</button>
+                        <button class="btn btn-secondary btn-icon" onclick="switchView('view-dashboard')"><i data-lucide="arrow-left"></i></button>
+                    </div>
+                </div>
 
-<div id="ergebnis"></div>
+                <div class="criteria-badge-container" id="det-criteria-list"></div>
 
-<script>
+                <div style="margin-top:40px;">
+                    <h4>Abgegebene Bewertungen (<span id="det-rating-count">0</span>)</h4>
+                </div>
 
-const API =
-"https://script.google.com/macros/s/AKfycbxeoaj9MlKorhn9-VqiUM3JgK1KwJMWcMv4J9ZPN7vhDAhOqF0_rQNB82e6zZ5aD30e/exec";
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Schülername</th>
+                                <th>Zeitpunkt</th>
+                                <th style="text-align: right;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-ratings-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-async function erstellen() {
+        <!-- Subtle Footer Credits -->
+        <footer>
+            Erstellt von Tiago &bull; Server von GitHub
+        </footer>
+    </div>
 
-  const daten = {
-    action: "createProject",
-    titel: document.getElementById("titel").value,
-    klasse: document.getElementById("klasse").value,
-    gruppen: document.getElementById("gruppen").value
-      .split("\n")
-      .filter(x => x.trim() !== ""),
-    kriterien: document.getElementById("kriterien").value
-      .split("\n")
-      .filter(x => x.trim() !== "")
-  };
+    <!-- VIEW: FULLSCREEN PRESENTATION MODE -->
+    <div id="view-present">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--glass-border); padding-bottom:20px;">
+            <div>
+                <span id="pres-class" class="project-badge">Klasse</span>
+                <h1 id="pres-title" style="font-size: 32px; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top:5px;">Projekttitel</h1>
+            </div>
+            <button class="btn btn-secondary" onclick="closePresentation()"><i data-lucide="x"></i> Beenden</button>
+        </div>
 
-  const response = await fetch(API,{
-    method:"POST",
-    body:JSON.stringify(daten)
-  });
+        <div class="podium-container" id="presentation-podium"></div>
 
-  const result = await response.json();
+        <div class="present-grid">
+            <div class="card">
+                <h3>Gruppen-Ranking</h3>
+                <div class="table-responsive" style="margin-top:15px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Platz</th>
+                                <th>Gruppe</th>
+                                <th>Schnitt (Ø)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pres-ranking-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Kriterien-Vergleich</h3>
+                <div style="position: relative; height: 300px; width: 100%; margin-top:15px;">
+                    <canvas id="chart-criteria-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  document.getElementById("ergebnis").innerHTML =
-    "<h2>Code: " + result.code + "</h2>";
-}
+    <!-- CUSTOM MODAL SYSTEM -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+            <h3 id="modal-title" style="margin-bottom:15px; color:var(--gold-primary);">Titel</h3>
+            <div id="modal-body" style="color:var(--text-light); line-height:1.6; max-height:400px; overflow-y:auto;"></div>
+            <div id="modal-footer" style="margin-top:25px; display:flex; justify-content:flex-end; gap:10px;"></div>
+        </div>
+    </div>
 
-</script>
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxeoaj9MlKorhn9-VqiUM3JgK1KwJMWcMv4J9ZPN7vhDAhOqF0_rQNB82e6zZ5aD30e/exec";
+        const BASE_STUDENT_URL = "https://tiagogt0000.github.io/Name-bewertung/student.html";
+        
+        let currentProjects = [];
+        let activeProjectCode = null;
+        let criteriaChartInstance = null;
 
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadDashboardData();
+        });
+
+        // Funktion um ein neues Gruppen-Eingabefeld hinzuzufügen
+        function addGroupField() {
+            const container = document.getElementById('groups-fields-container');
+            const fieldCount = container.querySelectorAll('input').length + 1;
+            
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.gap = '10px';
+            row.style.marginBottom = '10px';
+            
+            row.innerHTML = `
+                <input type="text" class="form-control project-group-input" placeholder="Gruppe ${fieldCount}" required>
+                <button type="button" class="btn btn-danger btn-icon" style="padding:12px;" onclick="this.parentElement.remove(); reindexGroupsPlaceholders();">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            lucide.createIcons();
+        }
+
+        // Platzhalter-Nummern für Gruppen korrigieren
+        function reindexGroupsPlaceholders() {
+            const inputs = document.querySelectorAll('.project-group-input');
+            inputs.forEach((input, index) => {
+                input.placeholder = `Gruppe ${index + 1}`;
+            });
+        }
+
+        // Funktion um ein neues Kriterien-Eingabefeld hinzuzufügen
+        function addCriterionField() {
+            const container = document.getElementById('criteria-fields-container');
+            const fieldCount = container.querySelectorAll('input').length + 1;
+            
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.gap = '10px';
+            row.style.marginBottom = '10px';
+            
+            row.innerHTML = `
+                <input type="text" class="form-control project-criterion-input" placeholder="Kriterium ${fieldCount}" required>
+                <button type="button" class="btn btn-danger btn-icon" style="padding:12px;" onclick="this.parentElement.remove(); reindexCriteriaPlaceholders();">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            lucide.createIcons();
+        }
+
+        // Platzhalter-Nummern für Kriterien korrigieren
+        function reindexCriteriaPlaceholders() {
+            const inputs = document.querySelectorAll('.project-criterion-input');
+            inputs.forEach((input, index) => {
+                input.placeholder = `Kriterium ${index + 1}`;
+            });
+        }
+
+        async function apiCall(bodyData) {
+            showLoader();
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(bodyData)
+                });
+                if (!response.ok) throw new Error("Netzwerkfehler");
+                return await response.json();
+            } catch (error) {
+                console.error("API Error:", error);
+                openAlert("Verbindungsfehler", "Die Aktion konnte nicht verarbeitet werden.");
+                return null;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function showLoader() { document.getElementById('loader').style.display = 'flex'; }
+        function hideLoader() { document.getElementById('loader').style.display = 'none'; }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.app-view').forEach(view => view.classList.remove('active'));
+            const dest = document.getElementById(viewId);
+            if(dest) dest.classList.add('active');
+            
+            document.getElementById('nav-actions').style.display = (viewId === 'view-dashboard') ? 'block' : 'none';
+            if (viewId === 'view-dashboard') loadDashboardData();
+        }
+
+        async function loadDashboardData() {
+            const data = await apiCall({ action: "getProjects" });
+            const grid = document.getElementById('projects-grid');
+            grid.innerHTML = "";
+
+            currentProjects = Array.isArray(data) ? data : [];
+
+            if (currentProjects.length === 0) {
+                grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; color:var(--text-muted);">Noch keine Projekte angelegt.</div>`;
+                return;
+            }
+
+            currentProjects.forEach(proj => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                const studentLink = `${BASE_STUDENT_URL}?code=${proj.code}`;
+
+                card.innerHTML = `
+                    <div class="project-card-header">
+                        <div>
+                            <span class="project-badge">${escapeHtml(proj.klasse)}</span>
+                            <h3 style="margin-top:8px; font-size:20px;">${escapeHtml(proj.titel)}</h3>
+                        </div>
+                        <span style="font-family:monospace; color:var(--gold-primary); font-weight:700; font-size:18px;">${proj.code}</span>
+                    </div>
+                    <div class="project-actions">
+                        <button class="btn" onclick="openProjectDetails('${proj.code}')"><i data-lucide="folder-open"></i> Öffnen</button>
+                        <button class="btn btn-secondary" onclick="copyLink('${studentLink}')"><i data-lucide="copy"></i> Link</button>
+                        <button class="btn btn-secondary btn-icon" onclick="openQrModal('${studentLink}', '${proj.code}')"><i data-lucide="qr-code"></i></button>
+                        <button class="btn btn-danger btn-icon" onclick="confirmDeleteProject('${proj.code}', '${escapeHtml(proj.titel)}')"><i data-lucide="trash-2"></i></button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        async function handleCreateProject(e) {
+            e.preventDefault();
+            const title = document.getElementById('p-title').value.trim();
+            const klasse = document.getElementById('p-class').value.trim();
+            
+            // Liest die dynamischen Gruppen aus allen Input-Feldern aus
+            const gruppen = Array.from(document.querySelectorAll('.project-group-input'))
+                                 .map(input => input.value.trim())
+                                 .filter(val => val !== "");
+
+            // Liest die dynamischen Kriterien aus allen Input-Feldern aus
+            const kriterien = Array.from(document.querySelectorAll('.project-criterion-input'))
+                                   .map(input => input.value.trim())
+                                   .filter(val => val !== "");
+
+            const res = await apiCall({
+                action: "createProject",
+                titel: title,
+                klasse: klasse,
+                gruppen: gruppen,
+                kriterien: kriterien
+            });
+
+            if (res && res.success) {
+                document.getElementById('form-create-project').reset();
+                
+                // Setze das Gruppen-Formular zurück auf den Ausgangszustand
+                document.getElementById('groups-fields-container').innerHTML = `
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <input type="text" class="form-control project-group-input" placeholder="Gruppe 1 (z.B. Gruppe A)" required>
+                        <button type="button" class="btn btn-danger btn-icon" style="padding:12px; opacity:0; pointer-events:none;"><i data-lucide="trash-2"></i></button>
+                    </div>
+                `;
+
+                // Setze das Kriterien-Formular zurück auf den Ausgangszustand
+                document.getElementById('criteria-fields-container').innerHTML = `
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <input type="text" class="form-control project-criterion-input" placeholder="Kriterium 1 (z.B. Fachwissen)" required>
+                        <button type="button" class="btn btn-danger btn-icon" style="padding:12px; opacity:0; pointer-events:none;"><i data-lucide="trash-2"></i></button>
+                    </div>
+                `;
+
+                const studentLink = `${BASE_STUDENT_URL}?code=${res.code}`;
+
+                document.getElementById('modal-body').innerHTML = `
+                    <p style="margin-bottom:15px;">Projekt erfolgreich in der Cloud angelegt!</p>
+                    <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:15px; text-align:center;">
+                        <span style="font-size:12px; color:var(--text-muted); display:block;">PROJEKTCODE</span>
+                        <strong style="font-size:32px; color:var(--gold-primary); letter-spacing:4px;">${res.code}</strong>
+                    </div>
+                    <div class="qr-wrapper"><div id="modal-success-qr"></div></div>
+                `;
+                
+                openModal("Erstellt!");
+                new QRCode(document.getElementById("modal-success-qr"), { text: studentLink, width: 160, height: 160 });
+
+                document.getElementById('modal-footer').innerHTML = `
+                    <button class="btn btn-secondary" onclick="copyLink('${studentLink}')"><i data-lucide="copy"></i> Link kopieren</button>
+                    <button class="btn" onclick="closeModal(); switchView('view-dashboard');">Dashboard</button>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        async function openProjectDetails(code) {
+            activeProjectCode = code;
+            const project = currentProjects.find(p => String(p.code) === String(code));
+            if(!project) return;
+
+            document.getElementById('det-title').innerText = project.titel;
+            document.getElementById('det-class').innerText = project.klasse;
+            document.getElementById('det-code').innerText = project.code;
+
+            const badgeContainer = document.getElementById('det-criteria-list');
+            badgeContainer.innerHTML = "";
+            const krList = typeof project.kriterien === 'string' ? project.kriterien.split(',') : project.kriterien;
+            if(krList) {
+                krList.forEach(k => {
+                    const b = document.createElement('span');
+                    b.className = 'crit-badge';
+                    b.innerText = k;
+                    badgeContainer.appendChild(b);
+                });
+            }
+
+            const studentLink = `${BASE_STUDENT_URL}?code=${code}`;
+            document.getElementById('btn-copy-det-link').onclick = () => copyLink(studentLink);
+            document.getElementById('btn-qr-det-trigger').onclick = () => openQrModal(studentLink, code);
+            document.getElementById('btn-present-trigger').onclick = () => launchPresentation(code);
+
+            await refreshProjectRatingsList();
+            switchView('view-project-details');
+        }
+
+        async function refreshProjectRatingsList() {
+            const stats = await apiCall({ action: "getProjectStats", code: activeProjectCode });
+            const tbody = document.getElementById('student-ratings-tbody');
+            tbody.innerHTML = "";
+            
+            if(!stats || !stats.anzahlBewertungen || stats.anzahlBewertungen === 0) {
+                document.getElementById('det-rating-count').innerText = "0";
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">Noch keine Bewertungen abgegeben.</td></tr>`;
+                return;
+            }
+
+            document.getElementById('det-rating-count').innerText = stats.anzahlBewertungen;
+
+            const results = await apiCall({ action: "getResults", code: activeProjectCode });
+            if (results) {
+                results.forEach(row => {
+                    const tr = document.createElement('tr');
+                    const dateFormatted = row.zeit ? new Date(row.zeit).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+                    
+                    tr.innerHTML = `
+                        <td style="font-weight:500;">${escapeHtml(row.schueler)}</td>
+                        <td style="color:var(--text-muted); font-size:14px;">${dateFormatted} Uhr</td>
+                        <td style="text-align: right;">
+                            <button class="btn btn-secondary" style="padding: 6px 14px; font-size:13px;" onclick="viewStudentDetails('${escapeHtml(row.schueler)}')"><i data-lucide="eye"></i> Details</button>
+                            <button class="btn btn-danger btn-icon" style="padding:6px;" onclick="confirmDeleteRating('${escapeHtml(row.schueler)}')"><i data-lucide="trash-2"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            lucide.createIcons();
+        }
+
+        async function viewStudentDetails(studentName) {
+            const data = await apiCall({ action: "getStudentRating", projektCode: activeProjectCode, schueler: studentName });
+            if(!data || !data.bewertung) return;
+
+            let htmlContent = `<div style="display:flex; flex-direction:column; gap:15px; margin-top:10px;">`;
+            const parsed = typeof data.bewertung === 'string' ? JSON.parse(data.bewertung) : data.bewertung;
+
+            for (const [groupName, criteriaObj] of Object.entries(parsed)) {
+                htmlContent += `<div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:10px; border-left:4px solid var(--gold-primary);">
+                    <strong style="color:var(--gold-primary); display:block; margin-bottom:5px;">Gruppe ${escapeHtml(groupName)}</strong>`;
+                
+                if (typeof criteriaObj === 'object') {
+                    for (const [crit, val] of Object.entries(criteriaObj)) {
+                        htmlContent += `<div style="font-size:14px; display:flex; justify-content:space-between; margin-top:2px;">
+                            <span>${escapeHtml(crit)}:</span> <strong>${val} Punkte</strong>
+                        </div>`;
+                    }
+                } else {
+                    htmlContent += `<div>Wert: ${criteriaObj}</div>`;
+                }
+                htmlContent += `</div>`;
+            }
+            htmlContent += `</div>`;
+
+            document.getElementById('modal-body').innerHTML = htmlContent;
+            openModal(`Details: ${escapeHtml(studentName)}`);
+            document.getElementById('modal-footer').innerHTML = `<button class="btn" onclick="closeModal()">Schließen</button>`;
+        }
+
+        async function launchPresentation(code) {
+            const project = currentProjects.find(p => String(p.code) === String(code));
+            const stats = await apiCall({ action: "getProjectStats", code: code });
+            const rawResults = await apiCall({ action: "getResults", code: code });
+            
+            if(!stats || !stats.gruppen || Object.keys(stats.gruppen).length === 0) {
+                openAlert("Keine Daten", "Es müssen Bewertungen vorliegen, um die Präsentation zu starten.");
+                return;
+            }
+
+            document.getElementById('pres-title').innerText = project.titel;
+            document.getElementById('pres-class').innerText = project.klasse;
+
+            const rankingArray = Object.entries(stats.gruppen).map(([name, avg]) => ({ name, avg: parseFloat(avg) }));
+            rankingArray.sort((a,b) => b.avg - a.avg);
+
+            const podiumContainer = document.getElementById('presentation-podium');
+            podiumContainer.innerHTML = "";
+            const p1 = rankingArray[0] || {name: "-", avg: 0};
+            const p2 = rankingArray[1] || null;
+            const p3 = rankingArray[2] || null;
+
+            if(p2) {
+                podiumContainer.innerHTML += `<div class="podium-place place-2">
+                    <div class="podium-name">${escapeHtml(p2.name)}</div>
+                    <div class="podium-score">${p2.avg.toFixed(2)} Ø</div>
+                    <div style="font-size:24px; font-weight:700; margin-top:5px; opacity:0.5;">2</div>
+                </div>`;
+            }
+            podiumContainer.innerHTML += `<div class="podium-place place-1">
+                <i data-lucide="crown" class="podium-crown" style="width:32px; height:32px;"></i>
+                <div class="podium-name">${escapeHtml(p1.name)}</div>
+                <div class="podium-score">${p1.avg.toFixed(2)} Ø</div>
+                <div style="font-size:32px; font-weight:800; margin-top:5px; color:var(--gold-primary);">1</div>
+            </div>`;
+            if(p3) {
+                podiumContainer.innerHTML += `<div class="podium-place place-3">
+                    <div class="podium-name">${escapeHtml(p3.name)}</div>
+                    <div class="podium-score">${p3.avg.toFixed(2)} Ø</div>
+                    <div style="font-size:20px; font-weight:700; margin-top:5px; opacity:0.3;">3</div>
+                </div>`;
+            }
+
+            const rankTbody = document.getElementById('pres-ranking-tbody');
+            rankTbody.innerHTML = "";
+            rankingArray.forEach((item, index) => {
+                rankTbody.innerHTML += `<tr>
+                    <td><strong>#${index + 1}</strong></td>
+                    <td>${escapeHtml(item.name)}</td>
+                    <td style="color:var(--gold-primary); font-weight:600;">${item.avg.toFixed(2)}</td>
+                </tr>`;
+            });
+
+            let critTotals = {}, critCounts = {};
+            if(rawResults) {
+                rawResults.forEach(r => {
+                    const bewObj = typeof r.bewertung === 'string' ? JSON.parse(r.bewertung) : r.bewertung;
+                    if(bewObj && typeof bewObj === 'object') {
+                        Object.values(bewObj).forEach(gObj => {
+                            if(gObj && typeof gObj === 'object') {
+                                Object.entries(gObj).forEach(([critName, val]) => {
+                                    let score = parseFloat(val);
+                                    if(!isNaN(score)) {
+                                        critTotals[critName] = (critTotals[critName] || 0) + score;
+                                        critCounts[critName] = (critCounts[critName] || 0) + 1;
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            const chartLabels = Object.keys(critTotals);
+            const chartData = chartLabels.map(l => (critTotals[l] / critCounts[l]).toFixed(2));
+
+            if(criteriaChartInstance) criteriaChartInstance.destroy();
+            const ctx = document.getElementById('chart-criteria-canvas').getContext('2d');
+            criteriaChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        data: chartData,
+                        backgroundColor: 'rgba(255, 215, 0, 0.3)',
+                        borderColor: '#ffd700',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#a0a0b8' } }
+                    }
+                }
+            });
+
+            document.getElementById('view-present').style.display = 'block';
+            document.getElementById('main-container').style.display = 'none';
+            lucide.createIcons();
+        }
+
+        function closePresentation() {
+            document.getElementById('view-present').style.display = 'none';
+            document.getElementById('main-container').style.display = 'block';
+        }
+
+        function confirmDeleteProject(code, title) {
+            document.getElementById('modal-body').innerHTML = `Möchten Sie das Projekt <strong>"${title}"</strong> wirklich unwiderruflich löschen? Alle verknüpften Bewertungen werden entfernt.`;
+            openModal("Projekt löschen?");
+            document.getElementById('modal-footer').innerHTML = `
+                <button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+                <button class="btn btn-danger" onclick="executeDeleteProject('${code}')">Löschen</button>
+            `;
+        }
+
+        async function executeDeleteProject(code) {
+            closeModal();
+            const res = await apiCall({ action: "deleteProject", code: code });
+            if(res && res.success) loadDashboardData();
+        }
+
+        function confirmDeleteRating(studentName) {
+            document.getElementById('modal-body').innerHTML = `Möchten Sie die Bewertung von <strong>"${studentName}"</strong> wirklich löschen?`;
+            openModal("Bewertung löschen");
+            document.getElementById('modal-footer').innerHTML = `
+                <button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+                <button class="btn btn-danger" onclick="executeDeleteRating('${studentName}')">Löschen</button>
+            `;
+        }
+
+        async function executeDeleteRating(studentName) {
+            closeModal();
+            const res = await apiCall({ action: "deleteRating", projektCode: activeProjectCode, schueler: studentName });
+            if(res && res.success) await refreshProjectRatingsList();
+        }
+
+        function openModal(title) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
+
+        function openAlert(title, text) {
+            document.getElementById('modal-body').innerText = text;
+            openModal(title);
+            document.getElementById('modal-footer').innerHTML = `<button class="btn" onclick="closeModal()">OK</button>`;
+        }
+
+        function openQrModal(link, code) {
+            document.getElementById('modal-body').innerHTML = `
+                <p style="text-align:center; color:var(--text-muted); margin-bottom:10px;">Schüler-Scanner oder Code-Eingabe:</p>
+                <div class="qr-wrapper">
+                    <div id="modal-qr-target"></div>
+                    <strong style="font-size:22px; color:var(--gold-primary); font-family:monospace; letter-spacing:2px;">${code}</strong>
+                </div>
+            `;
+            openModal("QR Freigabe");
+            new QRCode(document.getElementById("modal-qr-target"), { text: link, width: 180, height: 180 });
+            document.getElementById('modal-footer').innerHTML = `
+                <button class="btn btn-secondary" onclick="copyLink('${link}')"><i data-lucide="copy"></i> Link kopieren</button>
+                <button class="btn" onclick="closeModal()">Schließen</button>
+            `;
+            lucide.createIcons();
+        }
+
+        function copyLink(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                openAlert("Kopiert", "Link erfolgreich in die Zwischenablage kopiert.");
+            }).catch(() => {
+                openAlert("Fehler", "Kopieren fehlgeschlagen.");
+            });
+        }
+
+        function escapeHtml(string) {
+            if(!string) return "";
+            return String(string).replace(/[&<>"']/g, s => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[s]));
+        }
+    </script>
 </body>
 </html>
