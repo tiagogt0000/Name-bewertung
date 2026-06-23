@@ -1,47 +1,159 @@
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bewertung</title>
+<title>Projektbewertung</title>
 
 <style>
-body{
-    font-family:Arial,sans-serif;
-    max-width:900px;
-    margin:auto;
-    padding:20px;
+:root{
+    --bg:#0f172a;
+    --card:#1e293b;
+    --card2:#334155;
+    --accent:#3b82f6;
+    --success:#22c55e;
+    --danger:#ef4444;
+    --text:#f8fafc;
 }
 
-input,button{
-    padding:10px;
-    margin:5px;
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:20px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.card{
+    background:var(--card);
+    padding:20px;
+    border-radius:20px;
+    margin-bottom:20px;
+}
+
+h1{
+    text-align:center;
+}
+
+input[type=text]{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:var(--card2);
+    color:white;
+    font-size:16px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:var(--accent);
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:disabled{
+    opacity:0.6;
 }
 
 .gruppe{
-    border:1px solid #ddd;
-    padding:15px;
-    margin-top:15px;
-    border-radius:10px;
+    background:var(--card);
+    padding:20px;
+    border-radius:20px;
+    margin-top:20px;
+}
+
+.kriterium{
+    margin-top:20px;
+}
+
+.slider{
+    width:100%;
+}
+
+.wert{
+    text-align:right;
+    font-weight:bold;
+    color:#60a5fa;
+}
+
+.loader{
+    width:60px;
+    height:60px;
+    border:6px solid rgba(255,255,255,.15);
+    border-top:6px solid white;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+    margin:auto;
+}
+
+@keyframes spin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+}
+
+.loading{
+    text-align:center;
+    padding:40px;
+}
+
+.success{
+    text-align:center;
+    padding:40px;
+}
+
+.success h2{
+    color:var(--success);
+}
+
+.fehler{
+    color:var(--danger);
+    margin-top:10px;
 }
 </style>
-
 </head>
+
 <body>
 
-<h1>Projektbewertung</h1>
+<div class="container">
 
-<div id="start">
+<h1>📋 Projektbewertung</h1>
 
-    <input id="code" placeholder="Projektcode">
+<div class="card" id="start">
+
+    <input
+        id="code"
+        type="text"
+        placeholder="Projektcode">
+
+    <br><br>
 
     <button onclick="laden()">
         Projekt laden
     </button>
 
+    <div id="fehler" class="fehler"></div>
+
 </div>
 
 <div id="projekt"></div>
+
+</div>
 
 <script>
 
@@ -52,54 +164,100 @@ let aktuellesProjekt = null;
 
 async function laden(){
 
-    const response = await fetch(API,{
-        method:"POST",
-        body:JSON.stringify({
-            action:"getProject",
-            code:document.getElementById("code").value
-        })
-    });
+    const code =
+        document.getElementById("code").value.trim();
 
-    const projekt = await response.json();
+    if(!code){
+        document.getElementById("fehler").innerText =
+            "Bitte Projektcode eingeben";
+        return;
+    }
 
-    aktuellesProjekt = projekt;
+    document.getElementById("projekt").innerHTML = `
+        <div class="loading">
+            <div class="loader"></div>
+            <h3>Projekt wird geladen...</h3>
+        </div>
+    `;
 
-    anzeigen(projekt);
+    try{
+
+        const response = await fetch(API,{
+            method:"POST",
+            body:JSON.stringify({
+                action:"getProject",
+                code:code
+            })
+        });
+
+        const projekt = await response.json();
+
+        aktuellesProjekt = projekt;
+
+        anzeigen(projekt);
+
+    }catch(err){
+
+        document.getElementById("projekt").innerHTML = `
+            <div class="card">
+                Fehler beim Laden.
+            </div>
+        `;
+    }
 }
 
 function anzeigen(projekt){
 
     let html = `
-        <h2>${projekt.titel}</h2>
-        <p>Klasse: ${projekt.klasse}</p>
+        <div class="card">
+            <h2>${projekt.titel}</h2>
+            <p>Klasse ${projekt.klasse}</p>
 
-        <input id="schueler"
-               placeholder="Dein Name">
-
-        <hr>
+            <input
+                id="schueler"
+                type="text"
+                placeholder="Dein Name">
+        </div>
     `;
 
     projekt.gruppen.forEach(gruppe=>{
 
-        html += `<div class="gruppe">`;
-
-        html += `<h3>${gruppe}</h3>`;
+        html += `
+            <div class="gruppe">
+                <h2>Gruppe ${gruppe}</h2>
+        `;
 
         projekt.kriterien.forEach(kriterium=>{
 
+            const id =
+                gruppe + "_" + kriterium;
+
             html += `
-                <label>
-                    ${kriterium}
-                </label>
+                <div class="kriterium">
 
-                <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    id="${gruppe}_${kriterium}"
-                >
+                    <label>
+                        ${kriterium}
+                    </label>
 
-                <br><br>
+                    <div
+                        class="wert"
+                        id="wert_${id}">
+                        5
+                    </div>
+
+                    <input
+                        class="slider"
+                        type="range"
+                        min="0"
+                        max="10"
+                        value="5"
+                        id="${id}"
+                        oninput="
+                        document.getElementById(
+                        'wert_${id}'
+                        ).innerText=this.value">
+
+                </div>
             `;
         });
 
@@ -107,15 +265,29 @@ function anzeigen(projekt){
     });
 
     html += `
-        <button onclick="absenden()">
+        <br>
+
+        <button
+            id="sendenBtn"
+            onclick="absenden()">
             Bewertung absenden
         </button>
     `;
 
-    document.getElementById("projekt").innerHTML = html;
+    document.getElementById("projekt")
+        .innerHTML = html;
 }
 
 async function absenden(){
+
+    const name =
+        document.getElementById("schueler")
+        .value.trim();
+
+    if(!name){
+        alert("Bitte Namen eingeben");
+        return;
+    }
 
     const bewertung = {};
 
@@ -126,30 +298,67 @@ async function absenden(){
         aktuellesProjekt.kriterien.forEach(kriterium=>{
 
             bewertung[gruppe][kriterium] =
-                document.getElementById(
-                    gruppe + "_" + kriterium
-                ).value;
+                Number(
+                    document.getElementById(
+                        gruppe + "_" + kriterium
+                    ).value
+                );
         });
     });
 
-    await fetch(API,{
-        method:"POST",
-        body:JSON.stringify({
-            projektCode: aktuellesProjekt.code,
-            schueler:
-                document.getElementById("schueler").value,
-            bewertung: bewertung
-        })
-    });
+    const btn =
+        document.getElementById("sendenBtn");
 
-    alert("Bewertung gespeichert");
+    btn.disabled = true;
+    btn.innerText = "Speichern...";
+
+    try{
+
+        await fetch(API,{
+            method:"POST",
+            body:JSON.stringify({
+                projektCode:
+                    aktuellesProjekt.code,
+                schueler:name,
+                bewertung:bewertung
+            })
+        });
+
+        document.getElementById("projekt")
+            .innerHTML = `
+            <div class="success">
+                <h2>✅ Vielen Dank!</h2>
+                <p>
+                    Deine Bewertung wurde gespeichert.
+                </p>
+            </div>
+        `;
+
+    }catch(err){
+
+        btn.disabled = false;
+        btn.innerText =
+            "Bewertung absenden";
+
+        alert(
+            "Fehler beim Speichern"
+        );
+    }
 }
 
-const params = new URLSearchParams(window.location.search);
-const codeAusUrl = params.get("code");
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const codeAusUrl =
+    params.get("code");
 
 if(codeAusUrl){
-    document.getElementById("code").value = codeAusUrl;
+
+    document.getElementById("code")
+        .value = codeAusUrl;
+
     laden();
 }
 
@@ -157,3 +366,4 @@ if(codeAusUrl){
 
 </body>
 </html>
+```
