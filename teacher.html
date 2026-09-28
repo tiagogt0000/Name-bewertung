@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f6f7f5">
   <title>Lehrkraft-Dashboard · Projektblick</title>
   <link rel="stylesheet" href="style.css">
-  <script src="config.js" defer></script><script src="teacher.js" defer></script>
+  <script src="config.js" defer></script><script src="vendor/qrcode.min.js" defer></script><script src="teacher.js" defer></script>
 </head>
 <body>
   <header class="site-header wrap"><a class="brand" href="teacher.html"><span class="brand-mark">P</span><span>Projektblick</span></a><nav class="header-nav"><a href="student.html">Schüleransicht</a><button id="new-project-top" class="button button-small">+ Neues Projekt</button></nav></header>
@@ -28,7 +28,7 @@
     </section>
     <section id="detail-view" class="hidden">
       <button class="text-button back-button" data-view="dashboard">← Zur Übersicht</button>
-      <div class="detail-top"><div><div class="eyebrow" id="detail-class"></div><h1 id="detail-title"></h1><p>Projektcode <strong id="detail-code"></strong></p></div><div class="detail-actions"><button id="copy-detail-link" class="button button-secondary">Link kopieren</button><button id="present-button" class="button">Ergebnisse zeigen →</button></div></div>
+      <div class="detail-top"><div><div class="eyebrow" id="detail-class"></div><h1 id="detail-title"></h1><p>Projektcode <strong id="detail-code"></strong></p></div><div class="detail-actions"><button id="copy-detail-link" class="button button-secondary">Link kopieren</button><button id="qr-detail-link" class="button button-secondary">QR-Code</button><button id="present-button" class="button">Ergebnisse zeigen →</button></div></div>
       <div class="metrics"><div class="metric"><span>Bewertungen</span><strong id="rating-count">0</strong></div><div class="metric"><span>Gruppen</span><strong id="group-count">0</strong></div><div class="metric"><span>Kriterien</span><strong id="criterion-count">0</strong></div></div>
       <div class="panel"><div class="list-heading"><div><h2>Abgegebene Bewertungen</h2><p>Wähle einen Namen, um die Einzelwerte zu sehen.</p></div><button id="refresh-detail" class="button button-secondary button-small">↻ Aktualisieren</button></div><p class="message" id="detail-message" role="status" aria-live="polite"></p><div class="table-scroll"><table><thead><tr><th>Name</th><th>Zeitpunkt</th><th>Aktionen</th></tr></thead><tbody id="rating-rows"></tbody></table></div></div>
       <button id="delete-project" class="text-button danger-link">Projekt und alle Bewertungen löschen</button>

@@ -13,11 +13,10 @@ Projektblick ist eine kleine, responsive Bewertungsplattform für Schulprojekte.
 
 1. In der Tabelle **Bewertungsplattform** über **Erweiterungen → Apps Script** das zugehörige Script öffnen.
 2. Den Inhalt der vorhandenen `Code.gs` durch die Datei in diesem Repository ersetzen.
-3. Unter **Projekteinstellungen → Skripteigenschaften** die Eigenschaft `ADMIN_TOKEN` mit einem zufälligen Geheimnis aus mindestens 20 Zeichen anlegen. Diesen Wert Lehrkräften getrennt mitteilen. Er gehört **nicht** in den Website-Code oder dieses Repository.
-4. Unter **Bereitstellen → Bereitstellungen verwalten** die bestehende Web-App-Bereitstellung bearbeiten und eine **neue Version** bereitstellen. Sie muss weiter als Web-App unter dem bisherigen `/exec`-Link erreichbar sein. Falls Google eine neue URL vergibt, diese in `config.js` ersetzen.
-5. `student.html` mit einem Testprojekt und `teacher.html` mit dem Lehrkraft-Schlüssel prüfen.
+3. Unter **Bereitstellen → Bereitstellungen verwalten** die bestehende Web-App-Bereitstellung bearbeiten und eine **neue Version** bereitstellen. Sie muss weiter als Web-App unter dem bisherigen `/exec`-Link erreichbar sein. Falls Google eine neue URL vergibt, diese in `config.js` ersetzen.
+4. `student.html` mit einem Testprojekt und `teacher.html` prüfen.
 
-Die neue Website kann mit der bisherigen API geladen werden. Die Schutzprüfung für Lehrkraft-Aktionen ist erst nach Schritt 4 aktiv. Bis dahin ist die bisherige API weiterhin öffentlich erreichbar, einschließlich Löschaktionen.
+Die Lehrkraftseite funktioniert bewusst ohne Anmeldung über ihren Link. Das bereits bereitgestellte Script verlangt noch einen API-Wert; `teacher.js` sendet ihn automatisch. Da diese Datei öffentlich lesbar ist, ist der Wert **kein Zugangsschutz**. Jeder mit der Lehrkraftadresse kann Projekte und Bewertungen ansehen, erstellen und löschen. Für echten Zugriff nur durch Lehrkräfte wäre eine Anmeldung nötig.
 
 ## Datenformat
 
@@ -27,6 +26,8 @@ Die vorhandenen Spalten bleiben unverändert:
 - `Bewertungen`: ProjektCode, Schüler, Zeit, Bewertung
 
 Gruppen und Kriterien sind in der Tabelle kommagetrennt. Die Website verhindert deshalb Kommas und doppelte Namen beim Erstellen. Bereits gespeicherte Datensätze bleiben erhalten. Das neue Script verhindert neue doppelte Bewertungen pro Projekt und Name; vorhandene Duplikate werden nicht automatisch gelöscht.
+
+Beim Erstellen und in den Projektdetails zeigt die Lehrkraftseite einen QR-Code und einen Link zur Schülerseite. Der QR-Code wird mit einer lokal eingebundenen Kopie von `qrcodejs` erzeugt (MIT-Lizenz unter `vendor/LICENSE.qrcodejs`).
 
 ## Lokal ansehen
 

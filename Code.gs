@@ -3,8 +3,8 @@
  * Tabs: "Projekte" (Code, Titel, Klasse, Gruppen, Kriterien)
  *       "Bewertungen" (ProjektCode, Schüler, Zeit, Bewertung)
  *
- * Before deploying, set Script Property ADMIN_TOKEN to a long random secret.
- * The teacher page asks for this secret when the protected API requires it.
+ * The current teacher page works by link without login. Its API token is public
+ * in teacher.js for compatibility with the deployed script. It is not security.
  */
 const PROJECT_SHEET = "Projekte";
 const RATING_SHEET = "Bewertungen";

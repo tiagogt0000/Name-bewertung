@@ -6,7 +6,9 @@
   let activeProject = null;
   let ratings = [];
   let busy = false;
-  let adminToken = sessionStorage.getItem("projektblickAdminToken") || "";
+  // The teacher page is intentionally accessible by link without login.
+  // This value is public in the page source and provides no access control.
+  const PUBLIC_TEACHER_TOKEN = "123456712345671234567";
   const dialog = $("app-dialog");
 
   function node(tag, text, className) {
@@ -44,6 +46,24 @@
     url.searchParams.set("code", code);
     return url.href;
   }
+  function shareContent(code) {
+    const container = node("div", undefined, "qr-share");
+    container.append(node("div", "Projektcode: " + code, "code"));
+    const target = node("div", undefined, "qr-canvas");
+    container.append(target, node("code", studentLink(code), "share-url"));
+    if (typeof QRCode === "function") {
+      new QRCode(target, { text: studentLink(code), width: 180, height: 180, colorDark: "#17332d", colorLight: "#ffffff" });
+    } else {
+      target.append(node("p", "QR-Code konnte nicht geladen werden. Der Link kann weiterhin kopiert werden."));
+    }
+    return container;
+  }
+  function showQr(code) {
+    showDialog("Projekt teilen", "Schülerinnen und Schüler gelangen mit dem QR-Code direkt zur Bewertung.", [
+      button("Link kopieren", () => copy(studentLink(code)), "button button-secondary"),
+      button("Schließen", () => dialog.close(), "button")
+    ], shareContent(code), "EINLADUNG");
+  }
   async function copy(text) {
     try { await navigator.clipboard.writeText(text); toast("Link kopiert"); }
     catch { showDialog("Link teilen", "Bitte diesen Link kopieren:", [button("Schließen", () => dialog.close())], node("code", text)); }
@@ -63,39 +83,9 @@
     $("dialog-actions").replaceChildren(...actions);
     if (!dialog.open) dialog.showModal();
   }
-  function adminKeyDialog() {
-    return new Promise(resolve => {
-      dialog.addEventListener("close", () => resolve(false), { once: true });
-      const input = node("input");
-      input.type = "password";
-      input.autocomplete = "off";
-      input.placeholder = "Lehrkraft-Schlüssel";
-      input.setAttribute("aria-label", "Lehrkraft-Schlüssel");
-      showDialog("Zugang erforderlich", "Gib den im Apps Script hinterlegten Lehrkraft-Schlüssel ein.", [
-        button("Abbrechen", () => { dialog.close(); resolve(false); }, "button button-secondary"),
-        button("Weiter", () => {
-          const value = input.value.trim();
-          if (!value) return;
-          adminToken = value;
-          sessionStorage.setItem("projektblickAdminToken", value);
-          dialog.close();
-          resolve(true);
-        }, "button")
-      ], input, "GESCHÜTZTER BEREICH");
-      input.focus();
-    });
-  }
   async function api(payload, requiresAdmin = false) {
-    const data = requiresAdmin ? { ...payload, adminToken } : payload;
-    try { return await window.projektblickRequest(data); }
-    catch (error) {
-      if (requiresAdmin && error.code === "AUTH_REQUIRED") {
-        adminToken = "";
-        sessionStorage.removeItem("projektblickAdminToken");
-        if (await adminKeyDialog()) return window.projektblickRequest({ ...payload, adminToken });
-      }
-      throw error;
-    }
+    const data = requiresAdmin ? { ...payload, adminToken: PUBLIC_TEACHER_TOKEN } : payload;
+    return window.projektblickRequest(data);
   }
   function field(kind, value = "") {
     const host = $(kind + "-fields");
@@ -134,7 +124,9 @@
       const card = node("article", undefined, "project-card");
       card.append(node("div", project.klasse || "Projekt", "badge"), node("h3", project.titel), node("p", list(project.gruppen).length + " Gruppen · " + list(project.kriterien).length + " Kriterien"));
       const footer = node("div", undefined, "project-card-footer");
-      footer.append(node("span", project.code, "code"), button("Öffnen →", () => openProject(project.code), "button button-small"));
+      const actions = node("div", undefined, "card-actions");
+      actions.append(button("QR-Code", () => showQr(project.code), "button button-secondary button-small"), button("Öffnen →", () => openProject(project.code), "button button-small"));
+      footer.append(node("span", project.code, "code"), actions);
       card.append(footer);
       host.append(card);
     });
@@ -167,12 +159,12 @@
       $("create-form").reset();
       $("group-fields").replaceChildren(); field("group");
       $("criterion-fields").replaceChildren(); field("criterion");
-      const link = studentLink(String(result.code));
-      const code = node("div", "Projektcode: " + result.code, "code");
+      const code = String(result.code);
+      const link = studentLink(code);
       showDialog("Projekt erstellt", "Teile den Code oder diesen Link mit der Klasse.", [
         button("Link kopieren", () => copy(link), "button button-secondary"),
         button("Zur Übersicht", () => { dialog.close(); showView("dashboard"); loadProjects(); }, "button")
-      ], code, "ERFOLGREICH");
+      ], shareContent(code), "ERFOLGREICH");
     } catch (error) {
       setMessage("create-message", error.message || "Projekt konnte nicht erstellt werden.", true);
     } finally { setBusy(false, $("create-button")); }
@@ -320,6 +312,7 @@
   $("create-form").addEventListener("submit", createProject);
   $("refresh-detail").addEventListener("click", loadRatings);
   $("copy-detail-link").addEventListener("click", () => activeProject && copy(studentLink(activeProject.code)));
+  $("qr-detail-link").addEventListener("click", () => activeProject && showQr(activeProject.code));
   $("present-button").addEventListener("click", renderPresentation);
   $("delete-project").addEventListener("click", deleteProject);
   $("dialog-close").addEventListener("click", () => dialog.close());
