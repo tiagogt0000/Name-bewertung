@@ -69,7 +69,7 @@ function projectCache_() {
 }
 
 function clearProjectCache_() {
-  projectCache_().remove("projects-v1");
+  try { projectCache_().remove("projects-v1"); } catch (_) {}
 }
 
 function text_(value, max, label) {
@@ -109,9 +109,10 @@ function getProject_(value) {
 }
 
 function getProjects_() {
-  const cache = projectCache_();
-  const cached = cache.get("projects-v1");
-  if (cached) return JSON.parse(cached);
+  try {
+    const cached = projectCache_().get("projects-v1");
+    if (cached) return JSON.parse(cached);
+  } catch (_) {}
   const projects = rows_(PROJECT_SHEET, 5).filter(row => row[0] !== "").map(row => ({
     code: String(row[0]),
     titel: String(row[1]),
@@ -119,7 +120,7 @@ function getProjects_() {
     gruppen: String(row[3]),
     kriterien: String(row[4])
   }));
-  try { cache.put("projects-v1", JSON.stringify(projects), 60); } catch (_) {}
+  try { projectCache_().put("projects-v1", JSON.stringify(projects), 60); } catch (_) {}
   return projects;
 }
 

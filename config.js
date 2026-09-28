@@ -11,7 +11,11 @@ window.projektblickRequest = async function (payload) {
       body: JSON.stringify(payload),
       signal: controller.signal
     });
-    if (!response.ok) throw new Error("Der Server ist gerade nicht erreichbar.");
+    if (!response.ok) {
+      const error = new Error("Der Server ist gerade nicht erreichbar.");
+      error.code = "TRANSPORT_ERROR";
+      throw error;
+    }
     const result = await response.json();
     if (result && result.success === false) {
       const error = new Error(result.error || "Die Aktion ist fehlgeschlagen.");
@@ -20,7 +24,7 @@ window.projektblickRequest = async function (payload) {
     }
     return result;
   } catch (error) {
-    if (error.name === "AbortError" && saving) {
+    if (saving && (error.name === "AbortError" || error.name === "TypeError" || error.code === "TRANSPORT_ERROR")) {
       const uncertain = new Error("Die Speicherung konnte nicht bestätigt werden. Bitte frage deine Lehrkraft, bevor du erneut absendest.");
       uncertain.code = "SAVE_UNCERTAIN";
       throw uncertain;
