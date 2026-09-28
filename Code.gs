@@ -27,7 +27,7 @@ function doPost(e) {
       default: throw new Error("Unbekannte Aktion.");
     }
   } catch (error) {
-    return json_({ success: false, code: error.code || "BAD_REQUEST", error: error.message || "Unbekannter Fehler." });
+    return json_({ success: false, code: error.code || "SERVER_ERROR", error: error.message || "Unbekannter Fehler." });
   }
 }
 

@@ -2,6 +2,7 @@
   "use strict";
   const $ = id => document.getElementById(id);
   const views = ["dashboard", "create", "detail", "presentation"];
+  const PROJECTS_CACHE_KEY = "projektblick-projects-v1";
   let projects = [];
   let activeProject = null;
   let ratings = [];
@@ -26,6 +27,14 @@
     el.textContent = text;
     el.className = "message" + (text ? (error ? " error" : " ok") : "");
   }
+  function readSession(key) {
+    try { return JSON.parse(sessionStorage.getItem(key) || "null"); }
+    catch { return null; }
+  }
+  function writeSession(key, value) {
+    try { sessionStorage.setItem(key, JSON.stringify(value)); }
+    catch (_) {}
+  }
   function showView(name) {
     views.forEach(view => $(view + "-view").classList.toggle("hidden", view !== name));
     scrollTo({ top: 0, behavior: "smooth" });
@@ -41,11 +50,11 @@
     clearTimeout(toast.timer);
     toast.timer = setTimeout(() => el.classList.remove("visible"), 3500);
   }
-  function studentLink(project) {
+  function studentLink(project, includeProjectData = false) {
     const code = typeof project === "object" ? project.code : project;
     const url = new URL("student.html", location.href);
     url.searchParams.set("code", code);
-    if (project && typeof project === "object") {
+    if (includeProjectData && project && typeof project === "object") {
       url.searchParams.set("project", JSON.stringify({
         code: String(project.code),
         titel: String(project.titel || ""),
@@ -59,13 +68,14 @@
   }
   function shareContent(project) {
     const code = typeof project === "object" ? project.code : project;
-    const link = studentLink(project);
+    const shortLink = studentLink(project);
+    const qrLink = studentLink(project, true);
     const container = node("div", undefined, "qr-share");
     container.append(node("div", "Projektcode: " + code, "code"));
     const target = node("div", undefined, "qr-canvas");
-    container.append(target, node("code", link, "share-url"));
+    container.append(target, node("code", shortLink, "share-url"));
     if (typeof QRCode === "function") {
-      new QRCode(target, { text: link, width: 180, height: 180, colorDark: "#17332d", colorLight: "#ffffff" });
+      new QRCode(target, { text: qrLink, width: 180, height: 180, colorDark: "#17332d", colorLight: "#ffffff" });
     } else {
       target.append(node("p", "QR-Code konnte nicht geladen werden. Der Link kann weiterhin kopiert werden."));
     }
@@ -146,14 +156,20 @@
     });
   }
   async function loadProjects() {
-    setMessage("dashboard-status", "Projekte werden geladen …");
+    const cached = readSession(PROJECTS_CACHE_KEY);
+    if (!projects.length && Array.isArray(cached)) projects = cached;
+    const hasPreviousList = Array.isArray(cached) || projects.length > 0;
+    if (projects.length) renderProjects();
+    setMessage("dashboard-status", hasPreviousList ? "Übersicht wird aktualisiert …" : "Projekte werden geladen …");
     try {
       const result = await api({ action: "getProjects" }, true);
       if (!Array.isArray(result)) throw new Error("Ungültige Antwort vom Server.");
       projects = result.map(p => ({ ...p, code: String(p.code) }));
+      writeSession(PROJECTS_CACHE_KEY, projects);
       renderProjects();
     } catch (error) {
-      setMessage("dashboard-status", error.message || "Projekte konnten nicht geladen werden.", true);
+      if (hasPreviousList) setMessage("dashboard-status", "Verbindung fehlgeschlagen. Die zuletzt geladene Übersicht bleibt sichtbar.", true);
+      else setMessage("dashboard-status", error.message || "Projekte konnten nicht geladen werden.", true);
     }
   }
   async function createProject(event) {
@@ -175,6 +191,7 @@
       $("criterion-fields").replaceChildren(); field("criterion");
       const code = String(result.code);
       projects.push({ code, titel, klasse, gruppen: gruppen.join(","), kriterien: kriterien.join(",") });
+      writeSession(PROJECTS_CACHE_KEY, projects);
       renderProjects();
       const newProject = { code, titel, klasse, gruppen, kriterien };
       const link = studentLink(newProject);
@@ -194,6 +211,9 @@
     $("detail-code").textContent = activeProject.code;
     $("group-count").textContent = list(activeProject.gruppen).length;
     $("criterion-count").textContent = list(activeProject.kriterien).length;
+    ratings = [];
+    $("rating-count").textContent = "–";
+    $("rating-rows").replaceChildren();
     showView("detail");
     await loadRatings();
   }
@@ -265,6 +285,7 @@
       const result = await api({ action: "deleteProject", code: activeProject.code }, true);
       if (!result || !result.success) throw new Error("Löschen konnte nicht bestätigt werden.");
       projects = projects.filter(project => project.code !== activeProject.code);
+      writeSession(PROJECTS_CACHE_KEY, projects);
       activeProject = null;
       renderProjects();
       showView("dashboard");
