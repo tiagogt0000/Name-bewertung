@@ -118,9 +118,19 @@
       setBusy(false, $("submit-button"));
     }
   });
-  const code = new URLSearchParams(location.search).get("code");
+  const params = new URLSearchParams(location.search);
+  const code = params.get("code");
   if (code && /^\d{4}$/.test(code)) {
     $("project-code").value = code;
-    lookupForm.requestSubmit();
+    let openedFromInvite = false;
+    try {
+      const invitedProject = JSON.parse(params.get("project") || "null");
+      if (invitedProject && String(invitedProject.code) === code && Array.isArray(invitedProject.gruppen) && Array.isArray(invitedProject.kriterien)) {
+        $("lookup-panel").classList.add("hidden");
+        renderProject(invitedProject);
+        openedFromInvite = true;
+      }
+    } catch (_) {}
+    if (!openedFromInvite) lookupForm.requestSubmit();
   }
 })();

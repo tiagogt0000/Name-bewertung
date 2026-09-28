@@ -41,28 +41,42 @@
     clearTimeout(toast.timer);
     toast.timer = setTimeout(() => el.classList.remove("visible"), 3500);
   }
-  function studentLink(code) {
+  function studentLink(project) {
+    const code = typeof project === "object" ? project.code : project;
     const url = new URL("student.html", location.href);
     url.searchParams.set("code", code);
+    if (project && typeof project === "object") {
+      url.searchParams.set("project", JSON.stringify({
+        code: String(project.code),
+        titel: String(project.titel || ""),
+        klasse: String(project.klasse || ""),
+        gruppen: list(project.gruppen),
+        kriterien: list(project.kriterien)
+      }));
+      if (url.href.length > 1800) url.searchParams.delete("project");
+    }
     return url.href;
   }
-  function shareContent(code) {
+  function shareContent(project) {
+    const code = typeof project === "object" ? project.code : project;
+    const link = studentLink(project);
     const container = node("div", undefined, "qr-share");
     container.append(node("div", "Projektcode: " + code, "code"));
     const target = node("div", undefined, "qr-canvas");
-    container.append(target, node("code", studentLink(code), "share-url"));
+    container.append(target, node("code", link, "share-url"));
     if (typeof QRCode === "function") {
-      new QRCode(target, { text: studentLink(code), width: 180, height: 180, colorDark: "#17332d", colorLight: "#ffffff" });
+      new QRCode(target, { text: link, width: 180, height: 180, colorDark: "#17332d", colorLight: "#ffffff" });
     } else {
       target.append(node("p", "QR-Code konnte nicht geladen werden. Der Link kann weiterhin kopiert werden."));
     }
     return container;
   }
-  function showQr(code) {
+  function showQr(project) {
+    const code = typeof project === "object" ? project.code : project;
     showDialog("Projekt teilen", "Schülerinnen und Schüler gelangen mit dem QR-Code direkt zur Bewertung.", [
-      button("Link kopieren", () => copy(studentLink(code)), "button button-secondary"),
+      button("Link kopieren", () => copy(studentLink(project)), "button button-secondary"),
       button("Schließen", () => dialog.close(), "button")
-    ], shareContent(code), "EINLADUNG");
+    ], shareContent(project), "EINLADUNG");
   }
   async function copy(text) {
     try { await navigator.clipboard.writeText(text); toast("Link kopiert"); }
@@ -125,7 +139,7 @@
       card.append(node("div", project.klasse || "Projekt", "badge"), node("h3", project.titel), node("p", list(project.gruppen).length + " Gruppen · " + list(project.kriterien).length + " Kriterien"));
       const footer = node("div", undefined, "project-card-footer");
       const actions = node("div", undefined, "card-actions");
-      actions.append(button("QR-Code", () => showQr(project.code), "button button-secondary button-small"), button("Öffnen →", () => openProject(project.code), "button button-small"));
+      actions.append(button("QR-Code", () => showQr(project), "button button-secondary button-small"), button("Öffnen →", () => openProject(project.code), "button button-small"));
       footer.append(node("span", project.code, "code"), actions);
       card.append(footer);
       host.append(card);
@@ -162,11 +176,12 @@
       const code = String(result.code);
       projects.push({ code, titel, klasse, gruppen: gruppen.join(","), kriterien: kriterien.join(",") });
       renderProjects();
-      const link = studentLink(code);
+      const newProject = { code, titel, klasse, gruppen, kriterien };
+      const link = studentLink(newProject);
       showDialog("Projekt erstellt", "Teile den Code oder diesen Link mit der Klasse.", [
         button("Link kopieren", () => copy(link), "button button-secondary"),
         button("Zur Übersicht", () => { dialog.close(); showView("dashboard"); }, "button")
-      ], shareContent(code), "ERFOLGREICH");
+      ], shareContent(newProject), "ERFOLGREICH");
     } catch (error) {
       setMessage("create-message", error.message || "Projekt konnte nicht erstellt werden.", true);
     } finally { setBusy(false, $("create-button")); }
@@ -368,8 +383,8 @@
   $("add-criterion").addEventListener("click", () => field("criterion"));
   $("create-form").addEventListener("submit", createProject);
   $("refresh-detail").addEventListener("click", loadRatings);
-  $("copy-detail-link").addEventListener("click", () => activeProject && copy(studentLink(activeProject.code)));
-  $("qr-detail-link").addEventListener("click", () => activeProject && showQr(activeProject.code));
+  $("copy-detail-link").addEventListener("click", () => activeProject && copy(studentLink(activeProject)));
+  $("qr-detail-link").addEventListener("click", () => activeProject && showQr(activeProject));
   $("present-button").addEventListener("click", renderPresentation);
   $("delete-project").addEventListener("click", deleteProject);
   $("dialog-close").addEventListener("click", () => dialog.close());

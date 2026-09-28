@@ -99,12 +99,25 @@ function names_(value, label) {
 
 function getProject_(value) {
   const code = code_(value);
-  const project = getProjects_().find(item => item.code === code);
-  if (!project) return null;
+  const sheet = sheet_(PROJECT_SHEET);
+  const count = sheet.getLastRow() - 1;
+  if (count <= 0) return null;
+  const codeRange = sheet.getRange(2, 1, count, 1);
+  let row;
+  if (typeof codeRange.createTextFinder === "function") {
+    const match = codeRange.createTextFinder(code).matchEntireCell(true).useRegularExpression(false).findNext();
+    if (!match) return null;
+    row = sheet.getRange(match.getRow(), 1, 1, 5).getValues()[0];
+  } else {
+    row = rows_(PROJECT_SHEET, 5).find(item => String(item[0]) === code);
+    if (!row) return null;
+  }
   return {
-    ...project,
-    gruppen: project.gruppen.split(",").filter(Boolean),
-    kriterien: project.kriterien.split(",").filter(Boolean)
+    code: String(row[0]),
+    titel: String(row[1]),
+    klasse: String(row[2]),
+    gruppen: String(row[3]).split(",").filter(Boolean),
+    kriterien: String(row[4]).split(",").filter(Boolean)
   };
 }
 
@@ -153,8 +166,17 @@ function createProject_(data) {
 
 function hasRating_(projectCode, student) {
   const code = code_(projectCode);
-  const name = text_(student, 80, "Name").toLocaleLowerCase("de");
-  return rows_(RATING_SHEET, 2).some(row => String(row[0]) === code && String(row[1]).toLocaleLowerCase("de") === name);
+  const name = cellText_(text_(student, 80, "Name"));
+  const sheet = sheet_(RATING_SHEET);
+  const count = sheet.getLastRow() - 1;
+  if (count <= 0) return false;
+  const nameRange = sheet.getRange(2, 2, count, 1);
+  if (typeof nameRange.createTextFinder === "function") {
+    const matches = nameRange.createTextFinder(name).matchCase(false).matchEntireCell(true).useRegularExpression(false).findAll();
+    return matches.some(cell => String(sheet.getRange(cell.getRow(), 1).getValue()) === code);
+  }
+  const normalized = name.replace(/^'/, "").toLocaleLowerCase("de");
+  return rows_(RATING_SHEET, 2).some(row => String(row[0]) === code && String(row[1]).replace(/^'/, "").toLocaleLowerCase("de") === normalized);
 }
 
 function saveRating_(data) {
@@ -175,11 +197,11 @@ function saveRating_(data) {
       if (typeof score !== "number" || !Number.isInteger(score) || score < 0 || score > 10) fail_("Punkte müssen zwischen 0 und 10 liegen.");
     });
   });
-  return withLock_(() => {
-    if (hasRating_(code, name)) fail_("Für diesen Namen liegt bereits eine Bewertung vor.", "ALREADY_RATED");
-    sheet_(RATING_SHEET).appendRow([code, cellText_(name), new Date(), JSON.stringify(rating)]);
-    return { success: true };
-  });
+  if (hasRating_(code, name)) fail_("Für diesen Namen liegt bereits eine Bewertung vor.", "ALREADY_RATED");
+  // Each submission appends one independent row. Avoid the script-wide lock
+  // here so an entire class does not have to wait behind earlier submissions.
+  sheet_(RATING_SHEET).appendRow([code, cellText_(name), new Date(), JSON.stringify(rating)]);
+  return { success: true };
 }
 
 function getResults_(value) {
