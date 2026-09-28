@@ -2,7 +2,8 @@
 window.PROJEKTBLICK_API = "https://script.google.com/macros/s/AKfycbxeoaj9MlKorhn9-VqiUM3JgK1KwJMWcMv4J9ZPN7vhDAhOqF0_rQNB82e6zZ5aD30e/exec";
 window.projektblickRequest = async function (payload) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const saving = payload && payload.action === "saveRating";
+  const timeout = setTimeout(() => controller.abort(), saving ? 60000 : 45000);
   try {
     const response = await fetch(window.PROJEKTBLICK_API, {
       method: "POST",
@@ -19,7 +20,12 @@ window.projektblickRequest = async function (payload) {
     }
     return result;
   } catch (error) {
-    if (error.name === "AbortError") throw new Error("Die Anfrage hat zu lange gedauert. Bitte erneut versuchen.");
+    if (error.name === "AbortError" && saving) {
+      const uncertain = new Error("Die Speicherung konnte nicht bestätigt werden. Bitte frage deine Lehrkraft, bevor du erneut absendest.");
+      uncertain.code = "SAVE_UNCERTAIN";
+      throw uncertain;
+    }
+    if (error.name === "AbortError") throw new Error("Der Server antwortet gerade sehr langsam. Bitte erneut versuchen.");
     throw error;
   } finally {
     clearTimeout(timeout);

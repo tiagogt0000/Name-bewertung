@@ -160,10 +160,12 @@
       $("group-fields").replaceChildren(); field("group");
       $("criterion-fields").replaceChildren(); field("criterion");
       const code = String(result.code);
+      projects.push({ code, titel, klasse, gruppen: gruppen.join(","), kriterien: kriterien.join(",") });
+      renderProjects();
       const link = studentLink(code);
       showDialog("Projekt erstellt", "Teile den Code oder diesen Link mit der Klasse.", [
         button("Link kopieren", () => copy(link), "button button-secondary"),
-        button("Zur Übersicht", () => { dialog.close(); showView("dashboard"); loadProjects(); }, "button")
+        button("Zur Übersicht", () => { dialog.close(); showView("dashboard"); }, "button")
       ], shareContent(code), "ERFOLGREICH");
     } catch (error) {
       setMessage("create-message", error.message || "Projekt konnte nicht erstellt werden.", true);
@@ -247,9 +249,10 @@
     confirmAction("Projekt löschen?", "„" + activeProject.titel + "“ und alle zugehörigen Bewertungen werden unwiderruflich entfernt.", async () => {
       const result = await api({ action: "deleteProject", code: activeProject.code }, true);
       if (!result || !result.success) throw new Error("Löschen konnte nicht bestätigt werden.");
+      projects = projects.filter(project => project.code !== activeProject.code);
       activeProject = null;
+      renderProjects();
       showView("dashboard");
-      await loadProjects();
     });
   }
   function renderPresentation() {

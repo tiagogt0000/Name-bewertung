@@ -7,7 +7,10 @@ function makeSheet(header) {
   const rows = [header];
   return {
     rows,
-    getDataRange: () => ({ getValues: () => rows.map(row => [...row]) }),
+    getLastRow: () => rows.length,
+    getRange: (start, column, count, width) => ({
+      getValues: () => rows.slice(start - 1, start - 1 + count).map(row => row.slice(column - 1, column - 1 + width))
+    }),
     appendRow: row => rows.push(row),
     deleteRow: index => rows.splice(index - 1, 1)
   };
@@ -18,10 +21,16 @@ const sheets = {
   Bewertungen: makeSheet(["ProjektCode", "Schüler", "Zeit", "Bewertung"])
 };
 let secret = null;
+const cache = new Map();
 const context = vm.createContext({
   SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSheetByName: name => sheets[name] }) },
   PropertiesService: { getScriptProperties: () => ({ getProperty: () => secret }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+  CacheService: { getScriptCache: () => ({
+    get: key => cache.get(key) || null,
+    put: (key, value) => cache.set(key, value),
+    remove: key => cache.delete(key)
+  }) },
   ContentService: {
     MimeType: { JSON: "json" },
     createTextOutput: text => ({ text, setMimeType() { return this; } })
@@ -42,6 +51,7 @@ const created = post({
 assert.equal(created.success, true);
 assert.match(created.code, /^\d{4}$/);
 assert.equal(post({ action: "getProject", code: created.code }).gruppen.length, 2);
+assert.equal(post({ action: "getProjects", adminToken: secret }).length, 1);
 
 const rating = {
   action: "saveRating", projektCode: created.code, schueler: "Ada Lovelace",
@@ -60,4 +70,5 @@ assert.equal(sheets.Bewertungen.rows.length, 2);
 assert.equal(post({ action: "deleteRating", projektCode: created.code, schueler: "Ada Lovelace", adminToken: secret }).deleted, 1);
 assert.equal(post({ action: "deleteProject", code: created.code, adminToken: secret }).success, true);
 assert.equal(sheets.Projekte.rows.length, 1);
+assert.equal(post({ action: "getProjects", adminToken: secret }).length, 0);
 console.log("Apps Script API tests passed");

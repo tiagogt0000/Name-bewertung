@@ -11,10 +11,17 @@
     el.textContent = text;
     el.className = "message" + (text ? (error ? " error" : " ok") : "");
   }
-  function setBusy(value, button) {
+  function setBusy(value, button, label) {
     busy = value;
     button.disabled = value;
     button.setAttribute("aria-busy", String(value));
+    if (value) {
+      button.dataset.originalLabel = button.innerHTML;
+      button.textContent = label;
+    } else if (button.dataset.originalLabel) {
+      button.innerHTML = button.dataset.originalLabel;
+      delete button.dataset.originalLabel;
+    }
   }
   function list(value) {
     return (Array.isArray(value) ? value : String(value || "").split(","))
@@ -66,7 +73,7 @@
     if (!/^\d{4}$/.test(code)) return message("lookup-message", "Bitte einen vierstelligen Projektcode eingeben.", true);
     message("lookup-message", "");
     $("rating-panel").classList.add("hidden");
-    setBusy(true, $("lookup-button"));
+    setBusy(true, $("lookup-button"), "Projekt wird geladen …");
     try {
       const data = await window.projektblickRequest({ action: "getProject", code });
       if (!data || !data.code) throw new Error("Kein Projekt mit diesem Code gefunden.");
@@ -89,11 +96,11 @@
         bewertung[group][criterion] = Number($(`rating-${gi}-${ci}`).value);
       });
     });
-    message("rating-message", "");
-    setBusy(true, $("submit-button"));
+    message("rating-message", "Bitte warten: Deine Bewertung wird gespeichert. Lass diese Seite geöffnet, bis die Bestätigung erscheint.");
+    $("rating-message").classList.add("pending");
+    ratingForm.setAttribute("aria-busy", "true");
+    setBusy(true, $("submit-button"), "Wird gespeichert …");
     try {
-      const existing = await window.projektblickRequest({ action: "getStudentRating", projektCode: project.code, schueler: name });
-      if (existing && (existing.exists === true || existing.schueler)) throw new Error("Für diesen Namen liegt bereits eine Bewertung vor. Bitte wende dich an deine Lehrkraft.");
       const result = await window.projektblickRequest({ action: "saveRating", projektCode: project.code, schueler: name, bewertung });
       if (!result || result.success !== true) throw new Error("Speichern konnte nicht bestätigt werden.");
       $("rating-panel").classList.add("hidden");
@@ -101,8 +108,15 @@
       $("success-panel").classList.remove("hidden");
       $("success-panel").scrollIntoView({ behavior: "smooth" });
     } catch (error) {
-      message("rating-message", error.message || "Bewertung konnte nicht gespeichert werden.", true);
-    } finally { setBusy(false, $("submit-button")); }
+      const text = error.code === "ALREADY_RATED"
+        ? "Für diesen Namen liegt bereits eine Bewertung vor. Bitte wende dich an deine Lehrkraft."
+        : error.message || "Bewertung konnte nicht gespeichert werden.";
+      message("rating-message", text, true);
+    } finally {
+      $("rating-message").classList.remove("pending");
+      ratingForm.removeAttribute("aria-busy");
+      setBusy(false, $("submit-button"));
+    }
   });
   const code = new URLSearchParams(location.search).get("code");
   if (code && /^\d{4}$/.test(code)) {

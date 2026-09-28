@@ -58,8 +58,18 @@ function sheet_(name) {
   return sheet;
 }
 
-function rows_(name) {
-  return sheet_(name).getDataRange().getValues().slice(1);
+function rows_(name, columns) {
+  const sheet = sheet_(name);
+  const count = sheet.getLastRow() - 1;
+  return count > 0 ? sheet.getRange(2, 1, count, columns).getValues() : [];
+}
+
+function projectCache_() {
+  return CacheService.getScriptCache();
+}
+
+function clearProjectCache_() {
+  projectCache_().remove("projects-v1");
 }
 
 function text_(value, max, label) {
@@ -89,25 +99,28 @@ function names_(value, label) {
 
 function getProject_(value) {
   const code = code_(value);
-  const row = rows_(PROJECT_SHEET).find(row => String(row[0]) === code);
-  if (!row) return null;
+  const project = getProjects_().find(item => item.code === code);
+  if (!project) return null;
   return {
-    code: String(row[0]),
-    titel: String(row[1]),
-    klasse: String(row[2]),
-    gruppen: String(row[3]).split(",").filter(Boolean),
-    kriterien: String(row[4]).split(",").filter(Boolean)
+    ...project,
+    gruppen: project.gruppen.split(",").filter(Boolean),
+    kriterien: project.kriterien.split(",").filter(Boolean)
   };
 }
 
 function getProjects_() {
-  return rows_(PROJECT_SHEET).filter(row => row[0] !== "").map(row => ({
+  const cache = projectCache_();
+  const cached = cache.get("projects-v1");
+  if (cached) return JSON.parse(cached);
+  const projects = rows_(PROJECT_SHEET, 5).filter(row => row[0] !== "").map(row => ({
     code: String(row[0]),
     titel: String(row[1]),
     klasse: String(row[2]),
     gruppen: String(row[3]),
     kriterien: String(row[4])
   }));
+  try { cache.put("projects-v1", JSON.stringify(projects), 60); } catch (_) {}
+  return projects;
 }
 
 function withLock_(operation) {
@@ -123,7 +136,7 @@ function createProject_(data) {
   const gruppen = names_(data.gruppen, "Gruppen");
   const kriterien = names_(data.kriterien, "Kriterien");
   return withLock_(() => {
-    const existing = new Set(rows_(PROJECT_SHEET).map(row => String(row[0])));
+    const existing = new Set(rows_(PROJECT_SHEET, 1).map(row => String(row[0])));
     let code;
     for (let i = 0; i < 100; i++) {
       code = String(Math.floor(1000 + Math.random() * 9000));
@@ -132,6 +145,7 @@ function createProject_(data) {
     }
     if (!code) fail_("Zurzeit kann kein freier Projektcode erzeugt werden.");
     sheet_(PROJECT_SHEET).appendRow([code, cellText_(titel), cellText_(klasse), gruppen.map(cellText_).join(","), kriterien.map(cellText_).join(",")]);
+    clearProjectCache_();
     return { success: true, code };
   });
 }
@@ -139,7 +153,7 @@ function createProject_(data) {
 function hasRating_(projectCode, student) {
   const code = code_(projectCode);
   const name = text_(student, 80, "Name").toLocaleLowerCase("de");
-  return rows_(RATING_SHEET).some(row => String(row[0]) === code && String(row[1]).toLocaleLowerCase("de") === name);
+  return rows_(RATING_SHEET, 2).some(row => String(row[0]) === code && String(row[1]).toLocaleLowerCase("de") === name);
 }
 
 function saveRating_(data) {
@@ -169,7 +183,7 @@ function saveRating_(data) {
 
 function getResults_(value) {
   const code = code_(value);
-  return rows_(RATING_SHEET).filter(row => String(row[0]) === code).map(row => {
+  return rows_(RATING_SHEET, 4).filter(row => String(row[0]) === code).map(row => {
     let rating = {};
     try { rating = JSON.parse(String(row[3])); } catch (_) {}
     return { projektCode: code, schueler: String(row[1]), zeit: row[2] instanceof Date ? row[2].toISOString() : row[2], bewertung: rating };
@@ -199,11 +213,11 @@ function deleteRating_(projectCode, student) {
   const name = text_(student, 80, "Name").toLocaleLowerCase("de");
   return withLock_(() => {
     const sheet = sheet_(RATING_SHEET);
-    const rows = sheet.getDataRange().getValues();
+    const rows = rows_(RATING_SHEET, 2);
     let deleted = 0;
-    for (let i = rows.length - 1; i >= 1; i--) {
+    for (let i = rows.length - 1; i >= 0; i--) {
       if (String(rows[i][0]) === code && String(rows[i][1]).toLocaleLowerCase("de") === name) {
-        sheet.deleteRow(i + 1);
+        sheet.deleteRow(i + 2);
         deleted++;
       }
     }
@@ -216,9 +230,10 @@ function deleteProject_(value) {
   return withLock_(() => {
     [PROJECT_SHEET, RATING_SHEET].forEach(name => {
       const sheet = sheet_(name);
-      const rows = sheet.getDataRange().getValues();
-      for (let i = rows.length - 1; i >= 1; i--) if (String(rows[i][0]) === code) sheet.deleteRow(i + 1);
+      const rows = rows_(name, 1);
+      for (let i = rows.length - 1; i >= 0; i--) if (String(rows[i][0]) === code) sheet.deleteRow(i + 2);
     });
+    clearProjectCache_();
     return { success: true };
   });
 }
