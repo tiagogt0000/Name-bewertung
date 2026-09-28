@@ -255,57 +255,111 @@
       showView("dashboard");
     });
   }
-  function renderPresentation() {
+  function renderPresentation(selectedGroup) {
     if (!activeProject || !ratings.length) {
       toast("Für diese Präsentation sind Bewertungen nötig.");
       return;
     }
     $("presentation-title").textContent = activeProject.titel;
     $("presentation-class").textContent = activeProject.klasse ? "KLASSE " + activeProject.klasse : "ERGEBNISSE";
-    const sums = new Map(), counts = new Map(), criterionSums = new Map(), criterionCounts = new Map();
+    const groupStats = new Map();
+    const criterionTotals = new Map();
+    let allScoreSum = 0, allScoreCount = 0;
     ratings.forEach(item => {
       let scores;
       try { scores = typeof item.bewertung === "string" ? JSON.parse(item.bewertung) : item.bewertung; }
       catch { return; }
+      const countedGroups = new Set();
       Object.entries(scores || {}).forEach(([group, criteria]) => {
+        if (!criteria || typeof criteria !== "object" || Array.isArray(criteria)) return;
+        if (!groupStats.has(group)) groupStats.set(group, { sum: 0, count: 0, responses: 0, criteria: new Map() });
+        const stats = groupStats.get(group);
         Object.entries(criteria || {}).forEach(([criterion, raw]) => {
           const value = Number(raw);
           if (!Number.isFinite(value) || value < 0 || value > 10) return;
-          sums.set(group, (sums.get(group) || 0) + value);
-          counts.set(group, (counts.get(group) || 0) + 1);
-          criterionSums.set(criterion, (criterionSums.get(criterion) || 0) + value);
-          criterionCounts.set(criterion, (criterionCounts.get(criterion) || 0) + 1);
+          stats.sum += value;
+          stats.count++;
+          if (!stats.criteria.has(criterion)) stats.criteria.set(criterion, { sum: 0, count: 0, low: 0, middle: 0, high: 0 });
+          const itemStats = stats.criteria.get(criterion);
+          itemStats.sum += value;
+          itemStats.count++;
+          if (value <= 3) itemStats.low++;
+          else if (value <= 7) itemStats.middle++;
+          else itemStats.high++;
+          if (!criterionTotals.has(criterion)) criterionTotals.set(criterion, { sum: 0, count: 0 });
+          const total = criterionTotals.get(criterion);
+          total.sum += value;
+          total.count++;
+          allScoreSum += value;
+          allScoreCount++;
+          countedGroups.add(group);
         });
       });
+      countedGroups.forEach(group => groupStats.get(group).responses++);
     });
-    const ranking = [...sums].map(([name, sum]) => [name, sum / counts.get(name)]).sort((a, b) => b[1] - a[1]);
+    const ranking = [...groupStats].map(([name, stats]) => ({ name, average: stats.sum / stats.count, ...stats }))
+      .filter(group => group.count > 0).sort((a, b) => b.average - a.average);
     const host = $("presentation-content");
     host.replaceChildren();
-    const grid = node("div", undefined, "ranking-grid");
-    const rankCard = node("div", undefined, "ranking-card");
-    rankCard.append(node("div", "GRUPPEN", "eyebrow"), node("h2", "Rangliste"));
-    ranking.forEach(([name, value], index) => {
-      const row = node("div", undefined, "rank-row");
-      row.append(node("span", String(index + 1).padStart(2, "0"), "rank-number"), node("span", name), node("strong", value.toFixed(1) + " / 10"));
-      rankCard.append(row);
+    const bestCriterion = [...criterionTotals].sort((a, b) => (b[1].sum / b[1].count) - (a[1].sum / a[1].count))[0];
+    const metrics = node("div", undefined, "presentation-metrics");
+    [
+      ["Bewertungen", String(ratings.length), "abgegeben"],
+      ["Projektdurchschnitt", allScoreCount ? (allScoreSum / allScoreCount).toFixed(1) + " / 10" : "–", "über alle Gruppen und Kriterien"],
+      ["Stärkstes Kriterium", bestCriterion ? bestCriterion[0] : "–", bestCriterion ? (bestCriterion[1].sum / bestCriterion[1].count).toFixed(1) + " Punkte im Schnitt" : "Noch keine Werte"]
+    ].forEach(([label, value, note]) => {
+      const card = node("article", undefined, "presentation-metric");
+      card.append(node("span", label), node("strong", value), node("small", note));
+      metrics.append(card);
     });
-    const chartCard = node("div", undefined, "chart-card");
-    chartCard.append(node("div", "KRITERIEN", "eyebrow"), node("h2", "Im Durchschnitt"));
-    [...criterionSums].forEach(([name, sum]) => {
-      const average = sum / criterionCounts.get(name);
-      const row = node("div", undefined, "bar-row");
-      const label = node("div", undefined, "bar-label");
-      label.append(node("span", name), node("strong", average.toFixed(1)));
-      const track = node("div", undefined, "bar-track");
-      const fill = node("div", undefined, "bar-fill");
-      fill.style.width = (average * 10) + "%";
+    host.append(metrics);
+
+    const section = node("section", undefined, "presentation-groups");
+    section.append(node("div", "ERGEBNISSE NACH GRUPPE", "eyebrow"), node("h2", "Gruppen im Vergleich"), node("p", "Wähle eine Gruppe, um ihre Kriterien und Bewertungsverteilung anzusehen."));
+    const cards = node("div", undefined, "group-result-grid");
+    const chosen = ranking.some(group => group.name === selectedGroup) ? selectedGroup : ranking[0] && ranking[0].name;
+    ranking.forEach((group, index) => {
+      const card = button("", () => renderPresentation(group.name), "group-result-button" + (group.name === chosen ? " selected" : ""));
+      card.setAttribute("aria-pressed", String(group.name === chosen));
+      const top = node("span", undefined, "group-result-top");
+      top.append(node("span", index === 0 ? "PLATZ 1" : "PLATZ " + (index + 1), "rank-number"), node("strong", group.average.toFixed(1) + " / 10"));
+      const track = node("span", undefined, "bar-track");
+      const fill = node("span", undefined, "bar-fill");
+      fill.style.width = Math.max(0, Math.min(100, group.average * 10)) + "%";
       track.append(fill);
-      row.append(label, track);
-      chartCard.append(row);
+      card.append(top, node("span", group.name, "group-result-name"), track, node("small", group.responses + (group.responses === 1 ? " Bewertung" : " Bewertungen")));
+      cards.append(card);
     });
-    grid.append(rankCard, chartCard);
-    host.append(grid);
-    showView("presentation");
+    section.append(cards);
+    host.append(section);
+
+    const chosenGroup = ranking.find(group => group.name === chosen);
+    if (chosenGroup) {
+      const detail = node("section", undefined, "group-detail-card");
+      const heading = node("div", undefined, "group-detail-heading");
+      const titleBlock = node("div");
+      titleBlock.append(node("div", "GRUPPENDETAIL", "eyebrow"), node("h2", chosenGroup.name), node("p", chosenGroup.responses + (chosenGroup.responses === 1 ? " Bewertung" : " Bewertungen") + " · " + chosenGroup.count + " Einzelwerte"));
+      heading.append(titleBlock, node("strong", chosenGroup.average.toFixed(1) + " / 10", "group-detail-score"));
+      detail.append(heading);
+      const criteria = node("div", undefined, "criterion-detail-list");
+      [...chosenGroup.criteria].sort((a, b) => (b[1].sum / b[1].count) - (a[1].sum / a[1].count)).forEach(([name, result]) => {
+        const average = result.sum / result.count;
+        const row = node("article", undefined, "criterion-detail");
+        const label = node("div", undefined, "bar-label");
+        label.append(node("strong", name), node("strong", average.toFixed(1) + " / 10"));
+        const track = node("div", undefined, "bar-track");
+        const fill = node("div", undefined, "bar-fill");
+        fill.style.width = Math.max(0, Math.min(100, average * 10)) + "%";
+        track.append(fill);
+        row.append(label, track, node("small", "0–3 Punkte: " + result.low + " · 4–7 Punkte: " + result.middle + " · 8–10 Punkte: " + result.high));
+        criteria.append(row);
+      });
+      detail.append(criteria);
+      host.append(detail);
+    } else {
+      host.append(node("p", "Für diese Bewertungen konnten keine gültigen Punkte ermittelt werden.", "message error"));
+    }
+    if ($("presentation-view").classList.contains("hidden")) showView("presentation");
   }
 
   $("new-project-top").addEventListener("click", () => showView("create"));

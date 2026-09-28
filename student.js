@@ -109,8 +109,8 @@
       $("success-panel").scrollIntoView({ behavior: "smooth" });
     } catch (error) {
       const text = error.code === "ALREADY_RATED"
-        ? "Für diesen Namen liegt bereits eine Bewertung vor. Bitte wende dich an deine Lehrkraft."
-        : error.message || "Bewertung konnte nicht gespeichert werden.";
+        ? "Für diesen Namen wurde bereits eine Bewertung abgegeben."
+        : "Fehlgeschlagen. Bitte erneut versuchen.";
       message("rating-message", text, true);
     } finally {
       $("rating-message").classList.remove("pending");
