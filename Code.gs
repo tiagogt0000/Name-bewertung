@@ -153,10 +153,10 @@ function saveRating_(data) {
   const expectedCriteria = project.kriterien;
   if (Object.keys(rating).length !== expectedGroups.length) fail_("Bewertung enthält nicht alle Gruppen.");
   expectedGroups.forEach(group => {
-    const values = rating[group];
+    const values = Object.prototype.hasOwnProperty.call(rating, group) ? rating[group] : null;
     if (!values || typeof values !== "object" || Array.isArray(values) || Object.keys(values).length !== expectedCriteria.length) fail_("Bewertung enthält nicht alle Kriterien.");
     expectedCriteria.forEach(criterion => {
-      const score = values[criterion];
+      const score = Object.prototype.hasOwnProperty.call(values, criterion) ? values[criterion] : undefined;
       if (typeof score !== "number" || !Number.isInteger(score) || score < 0 || score > 10) fail_("Punkte müssen zwischen 0 und 10 liegen.");
     });
   });
@@ -178,7 +178,7 @@ function getResults_(value) {
 
 function getProjectStats_(value) {
   const results = getResults_(value);
-  const sum = {}, count = {};
+  const sum = Object.create(null), count = Object.create(null);
   results.forEach(item => Object.keys(item.bewertung || {}).forEach(group => {
     const criteria = item.bewertung[group];
     if (!criteria || typeof criteria !== "object") return;
@@ -189,7 +189,7 @@ function getProjectStats_(value) {
       count[group] = (count[group] || 0) + 1;
     });
   }));
-  const gruppen = {};
+  const gruppen = Object.create(null);
   Object.keys(sum).forEach(group => { gruppen[group] = Math.round(sum[group] / count[group] * 100) / 100; });
   return { anzahlBewertungen: results.length, gruppen };
 }

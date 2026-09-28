@@ -82,9 +82,9 @@
     if (busy || !project) return;
     const name = $("student-name").value.trim().replace(/\s+/g, " ");
     if (name.length < 2) return message("rating-message", "Bitte deinen Namen eingeben.", true);
-    const bewertung = {};
+    const bewertung = Object.create(null);
     project.gruppen.forEach((group, gi) => {
-      bewertung[group] = {};
+      bewertung[group] = Object.create(null);
       project.kriterien.forEach((criterion, ci) => {
         bewertung[group][criterion] = Number($(`rating-${gi}-${ci}`).value);
       });
